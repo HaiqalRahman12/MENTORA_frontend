@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Suara Alami</title>
+    <!-- Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-2xl text-center border-2 border-indigo-500">
+        <h1 class="text-4xl font-bold mb-4 text-white">Buat Suara Alami</h1>
+        <p class="text-lg text-gray-400 mb-8">Masukkan teks di bawah untuk mengubahnya menjadi suara yang terdengar manusiawi.</p>
+
+        <textarea id="textInput" 
+                  class="w-full h-40 p-4 mb-6 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 resize-none" 
+                  placeholder="Ketik teks di sini..."></textarea>
+
+        <button id="playButton" 
+                class="w-full px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-all duration-300 ease-in-out transform hover:scale-105 font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+            Dengarkan Suara
+        </button>
+
+        <div id="loadingIndicator" class="mt-4 text-indigo-400 hidden">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-400 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Memuat suara...
+        </div>
+
+        <p id="errorMessage" class="mt-4 text-red-400 hidden">
+            Terjadi kesalahan. Mohon coba lagi.
+        </p>
+
+    </div>
+
+    <script>
+        // API key akan disediakan secara otomatis oleh sistem
+        const apiKey = "AIzaSyDn6-ogwq8LqkNgmfso4ElW8PyPy1zAIvo";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+        const textInput = document.getElementById('textInput');
+        const playButton = document.getElementById('playButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Fungsi untuk mengkonversi base64 ke ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Fungsi untuk mengkonversi data PCM (Pulse-code modulation) ke format WAV
+        function pcmToWav(pcmData, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+            const view = new DataView(buffer);
+
+            // WAV header
+            writeString(view, 0, 'RIFF'); // ChunkID
+            view.setUint32(4, 36 + pcmData.length * 2, true); // ChunkSize
+            writeString(view, 8, 'WAVE'); // Format
+            writeString(view, 12, 'fmt '); // Subchunk1ID
+            view.setUint32(16, 16, true); // Subchunk1Size
+            view.setUint16(20, 1, true); // AudioFormat (1=PCM)
+            view.setUint16(22, 1, true); // NumChannels (1=mono)
+            view.setUint32(24, sampleRate, true); // SampleRate
+            view.setUint32(28, sampleRate * 2, true); // ByteRate
+            view.setUint16(32, 2, true); // BlockAlign
+            view.setUint16(34, 16, true); // BitsPerSample
+            writeString(view, 36, 'data'); // Subchunk2ID
+            view.setUint32(40, pcmData.length * 2, true); // Subchunk2Size
+
+            // Menulis data PCM
+            let offset = 44;
+            for (let i = 0; i < pcmData.length; i++, offset += 2) {
+                view.setInt16(offset, pcmData[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+
+            function writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+        }
+
+        playButton.addEventListener('click', async () => {
+            const text = textInput.value.trim();
+            if (!text) {
+                return;
+            }
+
+            // Atur UI saat memuat
+            playButton.disabled = true;
+            playButton.classList.add('opacity-50', 'cursor-not-allowed');
+            loadingIndicator.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: text }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Kore" }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                // Lakukan panggilan API
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const audio = new Audio(audioUrl);
+                    audio.play().catch(e => {
+                        console.error("Gagal memutar audio:", e);
+                        errorMessage.textContent = "Gagal memutar audio. Pastikan browser Anda mengizinkan autoplay.";
+                        errorMessage.classList.remove('hidden');
+                    });
+                    
+                } else {
+                    throw new Error("Data audio tidak ditemukan dalam respons API.");
+                }
+
+            } catch (error) {
+                console.error("Kesalahan saat memanggil API:", error);
+                errorMessage.textContent = `Terjadi kesalahan: ${error.message}`;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                // Kembalikan UI ke normal
+                playButton.disabled = false;
+                playButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
