@@ -11,9 +11,21 @@ import Image from 'next/image';
 export default function HomePage() {
   const router = useRouter();
 
+  // --- PERUBAHAN DIMULAI DI SINI ---
   const handleStartSimulation = () => {
-    router.push('/upload');
+    // 1. Cek apakah ada 'accessToken' di localStorage
+    const token = localStorage.getItem('accessToken');
+
+    // 2. Tentukan tujuan berdasarkan ada atau tidaknya token
+    if (token) {
+      // Jika ada token, pengguna sudah login -> arahkan ke halaman upload
+      router.push('/upload');
+    } else {
+      // Jika tidak ada token, pengguna belum login -> arahkan ke halaman login
+      router.push('/login');
+    }
   };
+  // --- PERUBAHAN SELESAI DI SINI ---
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-800">
@@ -28,7 +40,7 @@ export default function HomePage() {
             Dapatkan feedback instan dari AI. Berlatih dan pertahanan proposal thesis Anda dengan simulasi yang realistis.
           </p>
           <Button
-            onClick={handleStartSimulation}
+            onClick={handleStartSimulation} // Tombol ini sekarang cerdas
             size="lg"
             className="bg-gray-900 text-white font-semibold hover:bg-gray-700 transition-colors px-8 py-3"
           >
@@ -37,11 +49,12 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Features Section */}
-      <div className="bg-white py-16 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* ... sisa kode Anda tidak perlu diubah ... */}
+       {/* Features Section */}
+       <div className="bg-white py-16 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8" >
           {/* Feature Card 1 */}
-          <div className="p-8 border rounded-lg shadow-sm text-center">
+          <div className="p-8 border rounded-lg shadow-sm text-center" style={{ backgroundColor: '#E3F3FF' }}>
             <div className="mb-4">
               <Image
                                           src="/assets/file-text.png"
@@ -57,7 +70,7 @@ export default function HomePage() {
             </p>
           </div>
           {/* Feature Card 2 */}
-          <div className="p-8 border rounded-lg shadow-sm text-center">
+          <div className="p-8 border rounded-lg shadow-sm text-center" style={{ backgroundColor: '#E3F3FF' }}>
             <div className="mb-4">
               <Image
                                           src="/assets/mic.png"
@@ -73,7 +86,7 @@ export default function HomePage() {
             </p>
           </div>
           {/* Feature Card 3 */}
-          <div className="p-8 border rounded-lg shadow-sm text-center">
+          <div className="p-8 border rounded-lg shadow-sm text-center" style={{ backgroundColor: '#E3F3FF' }}>
             <div className="mb-4">
               <Image
                                           src="/assets/zap.png"
@@ -90,7 +103,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-
       {/* CTA Section */}
       <div className="bg-gray-100 py-20 px-6 mt-8">
         <div className="max-w-4xl mx-auto text-center">
@@ -108,7 +120,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Button
-              onClick={handleStartSimulation}
+              onClick={handleStartSimulation} // Tombol ini juga sekarang cerdas
               className="bg-gray-900 text-white font-semibold hover:bg-gray-700 transition-colors px-8 py-3"
             >
               Coba Sekarang

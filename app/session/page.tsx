@@ -49,8 +49,8 @@ const mockQuestions = [
 const SpeechRecognition =
   typeof window !== "undefined"
     ? (window.SpeechRecognition ||
-        (window as any).webkitSpeechRecognition ||
-        null)
+      (window as any).webkitSpeechRecognition ||
+      null)
     : null;
 
 // ------------------ Komponen utama ------------------
@@ -65,7 +65,7 @@ export default function App() {
     transcript: [],
     timeRemaining: 1800,
   });
-  
+
   const [sessionState, setSessionState] = useState<SessionState>("connecting");
   const [transcript, setTranscript] = useState<ChatMessage[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(1800);
@@ -360,7 +360,7 @@ export default function App() {
         return `${base} bg-gray-200 text-gray-800 hover:bg-gray-300`;
     }
   };
-  
+
   const getMicButtonVariant = () => {
     if (sessionState === "user_speaking") return "destructive";
     if (sessionState === "waiting_user") return "default";
@@ -378,10 +378,47 @@ export default function App() {
     );
   }
 
+  const renderMicIcon = () => {
+    if (sessionState === "user_speaking") {
+      // Kondisi 1: Sedang Merekam (Tombol Merah)
+      return (
+        <Image
+          src="/assets/mic-recording.png" // Ganti dengan path gambar "recording" Anda
+          alt="Berhenti Merekam"
+          width={25} // Sesuaikan ukuran
+          height={25}
+        />
+      );
+    } else if (sessionState === "waiting_user") {
+      // Kondisi 2: Siap Merekam (Tombol Biru)
+      return (
+        <Image
+          src="/assets/mic-disabled.png" // Ganti dengan path gambar "standby" Anda
+          alt="Mulai Merekam"
+          width={25} // Sesuaikan ukuran
+          height={25}
+        />
+      );
+    } else {
+      // Kondisi 3: Tidak Aktif (Tombol Abu-abu)
+      return (
+        <Image
+          src="/assets/mic-disabled.png" // Ganti dengan path gambar "disabled" Anda
+          alt="Mikrofon Tidak Aktif"
+          width={25} // Sesuaikan ukuran
+          height={25}
+        />
+      );
+    }
+  };
+
+  const isDisabled = 
+    sessionState !== "waiting_user" && sessionState !== "user_speaking";
+
   // ------------------ Render ------------------
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
@@ -434,23 +471,23 @@ export default function App() {
                 }}
               ></div>
               <div className="relative z-10">
-  {sessionState === "listening_ai" ? (
-    <Image
-      src="/assets/topi.png"
-      alt="Mendengarkan"
-      width={64}
-      height={64}
-      className="animate-pulse"
-    />
-  ) : (
-    <Image
-      src="/assets/topi.png"
-      alt="Sedang merekam"
-      width={64}
-      height={64}
-    />
-  )}
-</div>
+                {sessionState === "listening_ai" ? (
+                  <Image
+                    src="/assets/topi.png"
+                    alt="Mendengarkan"
+                    width={64}
+                    height={64}
+                    className="animate-pulse"
+                  />
+                ) : (
+                  <Image
+                    src="/assets/topi.png"
+                    alt="Sedang merekam"
+                    width={64}
+                    height={64}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="mt-6 text-center">
@@ -467,55 +504,18 @@ export default function App() {
 
       {/* Mic button and status bar */}
       <div className="p-6 border-t border-gray-200 bg-white flex flex-col items-center">
-        <button
-          onClick={handleMicToggle}
-          className={buttonClass(getMicButtonVariant())}
-          disabled={
-            sessionState === "connecting" ||
-            sessionState === "listening_ai" ||
-            sessionState === "processing" ||
-            sessionState === "ending"
-          }
-        >
-          {isRecording ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white"
-            >
-              <line x1="2" x2="22" y1="12" y2="12" />
-              <path d="M12 15V2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0v-7a3 3 0 0 0-3-3" />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white"
-            >
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" x2="12" y1="19" y2="22" />
-            </svg>
-          )}
-        </button>
-        <p className="mt-2 text-sm text-gray-600">
-          {isRecording ? "Sedang merekam..." : "Tekan untuk berbicara"}
-        </p>
-      </div>
+      <button
+        onClick={handleMicToggle}
+        className={buttonClass(getMicButtonVariant())}
+        disabled={isDisabled}
+      >
+        {/* Panggil fungsi untuk merender ikon yang sesuai */}
+        {renderMicIcon()}
+      </button>
+      <p className="mt-2 text-sm text-gray-600">
+        {isRecording ? "Sedang merekam..." : "Tekan untuk berbicara"}
+      </p>
+    </div>
 
       {/* Transcript section */}
       <div className="bg-white border-t border-gray-200">
@@ -527,26 +527,23 @@ export default function App() {
             {transcript.map((message, index) => (
               <div
                 key={message.id}
-                className={`flex items-start gap-4 ${
-                  message.speaker === "user"
+                className={`flex items-start gap-4 ${message.speaker === "user"
                     ? "justify-end"
                     : "justify-start"
-                } ${index === transcript.length - 1 ? "last-message" : ""}`}
+                  } ${index === transcript.length - 1 ? "last-message" : ""}`}
               >
                 <div
-                  className={`flex items-center gap-3 ${
-                    message.speaker === "user" ? "flex-row-reverse" : "flex-row"
-                  }`}
+                  className={`flex items-center gap-3 ${message.speaker === "user" ? "flex-row-reverse" : "flex-row"
+                    }`}
                 >
                   <div className="w-10 h-10 rounded-full flex-shrink-0 bg-gray-300 flex items-center justify-center text-sm font-semibold text-gray-800">
                     {message.speaker === "user" ? "MA" : "DO"}
                   </div>
                   <div
-                    className={`rounded-lg p-3 max-w-[75%] shadow-sm ${
-                      message.speaker === "user"
+                    className={`rounded-lg p-3 max-w-[75%] shadow-sm ${message.speaker === "user"
                         ? "bg-blue-100 text-gray-800"
                         : "bg-gray-100 text-gray-800"
-                    }`}
+                      }`}
                   >
                     <div className="text-xs font-semibold">
                       [{message.speaker === "user" ? "Anda" : "Dosen-AI"}]
@@ -560,7 +557,7 @@ export default function App() {
         </div>
       </div>
 
-      
+
     </div>
   );
 }
